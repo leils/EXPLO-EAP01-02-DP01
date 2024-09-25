@@ -17,8 +17,33 @@
             height: 100vh;
         }
 
+        .trackedGaze {
+            border: 3px solid red;
+        }
+
         .circle {
             fill: red;
+        }
+
+        .calibration-text {
+            font-size: 24px;
+            font-family: Arial, sans-serif;
+            fill: black;
+            text-anchor: middle;
+        }
+
+        #imageContainer {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        #imageContainer img {
+            max-width: 50vw;
+            max-height: 50vh;
         }
     </style>
 </head>
@@ -26,6 +51,9 @@
 <body>
 
     <svg></svg>
+    <div id="imageContainer">
+        <img src="https://via.placeholder.com/300x200" alt="Random Image">
+    </div>
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="./webgazer.js"></script>
@@ -41,8 +69,10 @@
         // Keep track of the click positions
         let clickPositions = [];
 
-        // Variable to manage calibration mode
+        // Variables to manage modes
         let inCalibration = true;
+        let inImageMode = false;
+        let imageModeDuration = 5000; // 5 seconds
 
         // Calibration grid points (3x3 grid, relative positions)
         const calibrationPoints = [
@@ -57,12 +87,15 @@
             [0.8, 0.8]
         ];
 
+        // Add calibration instructions text
         const calibrationText = svg.append("text")
-            .attr("x", width / 2 - 170)
-            .attr("y", 100) // Positioning it slightly above the center
+            .attr("x", width / 2)
+            .attr("y", height / 2 - 50) // Positioning it slightly above the center
             .attr("class", "calibration-text")
             .text("Click each dot while looking at it to calibrate gaze tracking.");
 
+        // Create the image container for image rendering mode
+        const imageContainer = document.getElementById("imageContainer");
 
         // Function to create the calibration circles
         function createCalibrationCircles() {
@@ -86,6 +119,7 @@
                         inCalibration = false;
                         console.log("Calibration complete!");
 
+                        // Remove calibration text when calibration is complete
                         calibrationText.remove();
                     }
                 });
@@ -125,26 +159,21 @@
             }
         });
 
+        // Track gaze during calibration or normal operation
+        let gazePoints = [];
 
         async function eyeListener(data, clock) {
-            // During calibration mode, no need to update lines
             if (inCalibration) return;
 
-            // In this we want to track how long a point was being looked at,
-            // so we need to buffer where the gaze moves to and then on next move
-            // we calculate how long the gaze stayed there.
-
-            clickPositions.push([data.x, data.y]);
-            // Keep only the last maxLines + 1 positions
-            if (clickPositions.length > maxLines + 1) {
-                clickPositions.shift();
+            if (!!data.x && !!data.y && inImageMode) {
+                clickPositions.push([data.x, data.y]);
+                updateLines();
             }
 
-            // Update the lines based on the new set of positions
-            updateLines();
         }
 
-        // pdate the lines between the last N points
+
+        // Function to update the lines between the last N points
         function updateLines() {
             if (clickPositions.length < 2) return; // Need at least 2 points to draw a line
 
@@ -171,6 +200,26 @@
             // Remove old lines if there are more than maxLines connections
             lines.exit().remove();
         }
+
+        // Keydown handler to start image mode on spacebar press
+        window.addEventListener('keydown', function (event) {
+            if (event.code === 'Space' && !inImageMode) {
+                inImageMode = true;
+                imageContainer.style.display = 'block'; // Show the image
+
+                // Clear previous gaze points
+                gazePoints = [];
+
+                // Hide the image and render gaze points after 5 seconds
+                setTimeout(() => {
+                    inImageMode = false;
+                    // imageContainer.style.display = 'none'; // Hide the image
+                    console.log("Gaze points recorded:", gazePoints);
+
+                    // Render the gaze points
+                }, imageModeDuration);
+            }
+        });
     </script>
 
 </body>

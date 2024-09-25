@@ -46,24 +46,26 @@
             const lines = svg.selectAll("line")
                 .data(clickPositions.slice(1));
 
+            lines.attr("stroke", "red").attr("stroke-width",2);
+
             // Update existing lines
             lines.attr("x1", (d, i) => clickPositions[i][0])
                 .attr("y1", (d, i) => clickPositions[i][1])
                 .attr("x2", d => d[0])
                 .attr("y2", d => d[1]);
 
-            // Add new lines
+            // // Add new lines
             lines.enter()
                 .append("line")
                 .attr("x1", (d, i) => clickPositions[i][0])
                 .attr("y1", (d, i) => clickPositions[i][1])
                 .attr("x2", d => d[0])
                 .attr("y2", d => d[1])
-                .attr("stroke", "black")
+                .attr("stroke", "red")
                 .attr("stroke-width", 2);
 
             // Remove old lines if there are more than maxLines connections
-            lines.exit().remove();
+            // lines.exit().remove();
         }
 
         /*-------------- Gazer ------------------*/
@@ -109,40 +111,16 @@
         let lastGaze;
 
         async function eyeListener(data, clock) {
-            // data is the gaze data, clock is the time since webgazer.begin()
 
-            // Init if lastTime not set
-            if (!lastTime) {
-                lastTime = clock;
+            if (!!data.x && !!data.y) {
+                clickPositions.push([data.x, data.y]);
             }
 
-            // In this we want to track how long a point was being looked at,
-            // so we need to buffer where the gaze moves to and then on next move
-            // we calculate how long the gaze stayed there.
-            if (!!lastGaze) {
-                if (!!lastGaze.x && !!lastGaze.y) {
-                    let duration = clock - lastTime;
-                    let point = {
-                        x: Math.floor(lastGaze.x),
-                        y: Math.floor(lastGaze.y),
-                        value: duration
-                    }
-                    console.log("Point logged: ", point);
-
-                    clickPositions.push([point.x, point.y]);
-                    // Keep only the last maxLines + 1 positions
-                    if (clickPositions.length > maxLines + 1) {
-                        clickPositions.shift();
-                    }
-
-                    // Update the lines based on the new set of positions
-                    updateLines();
-
-                }
+            if (clickPositions.length > maxLines + 1) {
+                clickPositions.shift();
             }
 
-            lastGaze = data;
-            lastTime = clock;
+            updateLines();
         }
 
 
