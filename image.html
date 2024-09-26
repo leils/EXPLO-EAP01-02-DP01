@@ -69,9 +69,9 @@
 
     <svg></svg>
     <div id="imageContainer">
-        <!-- <img src="rocks.jpg"> -->
+        <img id="shownImage" src="rocks.jpg">
         <!-- <img src="hiking.jpg"> -->
-        <img src="cliff.jpg">
+        <!-- <img id="shownImage" src="cliff.jpg"> -->
         <!-- <img src="wood.jpg"> -->
     </div>
     <div id="instructionContainer">
@@ -96,8 +96,16 @@
             <br>
             When tracking feels sufficiently accurate, press the <strong>spacebar</strong>.
         </p>
-            
         `;
+
+        const images = [
+            "rocks.jpg",
+            "hiking.jpg",
+            "cliff.jpg",
+            "wood.jpg"
+        ];
+        let imgIndex = 0;
+
         const svg = d3.select("svg");
         const width = window.innerWidth;
         const height = window.innerHeight;
@@ -214,9 +222,6 @@
             }
         });
 
-        // Track gaze during calibration or normal operation
-        let gazePoints = [];
-
         async function eyeListener(data, clock) {
             if (inCalibration) return;
 
@@ -256,14 +261,12 @@
             lines.exit().remove();
         }
 
-        // Keydown handler to start image mode on spacebar press
-        window.addEventListener('keydown', function (event) {
-            if (event.code === 'Space' && !recordGazeData) {
-                imageContainer.style.display = 'block'; // Show the image
+        function startGazeMode() {
+            imageContainer.style.display = 'block'; // Show the image
                 instructionsContainer.style.display = 'none'; // Hide instructions
 
                // Clear previous gaze points
-                gazePoints = [];
+                gazePositions = [];
 
                 setTimeout(() => {
                     recordGazeData = true;
@@ -274,10 +277,29 @@
                     recordGazeData = false;
                     updateLines();
                     // imageContainer.style.display = 'none'; // Hide the image
-                    console.log("Gaze points recorded:", gazePoints);
+                    console.log("Gaze points recorded:", gazePositions);
 
                     // Render the gaze points
                 }, imageModeDuration);
+        }
+
+        // Keydown handler to start image mode on spacebar press
+        window.addEventListener('keydown', function (event) {
+            if (event.code === 'Space' && !recordGazeData) {
+                startGazeMode();
+            }
+
+            if (event.code == "ArrowRight" && !recordGazeData) {
+                imgIndex = imgIndex >= images.length - 1 ? 0 : imgIndex + 1;
+                const image = document.getElementById("shownImage");
+                image.src = images[imgIndex];
+
+                gazePositions = []; 
+                let lines = svg.selectAll("line").data([]);
+                lines.exit().remove();
+                // svg.selectAll("line").remove();
+
+                startGazeMode();
             }
         });
     </script>
